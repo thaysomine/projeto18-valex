@@ -6,7 +6,6 @@ export async function createCard(req: Request, res: Response) {
     const { employeeId, type } : { employeeId : number, type: cardRepository.TransactionTypes } = req.body;
     // TODO: validar dados (joi)
     await cardServices.createCard(employeeId, type);
-
     res.sendStatus(201);
 }
 
@@ -17,7 +16,6 @@ export async function activateCard(req: Request, res: Response) {
     const cardId = parseInt(id);
 
     await cardServices.activateCard(cardId, securityCode, password);
-
     res.sendStatus(201);
 }
 
@@ -26,7 +24,6 @@ export async function getCardInfos (req: Request, res: Response) {
     const cardId = parseInt(id);
 
     const card = await cardServices.getCardInfos(cardId);
-
     res.json(card);
 }
 
@@ -36,6 +33,14 @@ export async function blockCard (req: Request, res: Response) {
     const { password } : {password: string} = req.body;
 
     await cardServices.blockCard(cardId, password);
+    res.sendStatus(201);
+}
 
+export async function unblockCard (req: Request, res: Response) {
+    const { id } = req.params;
+    const cardId = parseInt(id);
+    const { password } : {password: string} = req.body;
+
+    await cardServices.unblockCard(cardId, password);
     res.sendStatus(201);
 }

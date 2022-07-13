@@ -109,13 +109,17 @@ export async function getCardInfos(cardId: number) {
 export async function blockCard(cardId: number, password: string) {
     // validar se o cartão existe
     const card = await cardRepository.findById(cardId);
-    // validar se o cartão existe
     if (!card) {
         throw new Error("Card not found");
     }
     // validar se o cartão já está bloqueado
     if (card.isBlocked) {
         throw new Error("Card already blocked");
+    }
+    // validar se cartão esta expirado
+    const expirationDate = card.expirationDate;
+    if (expirationDate < dayjs().format("MM/YY")) {
+        throw new Error("Card expired");
     }
     // validar se a senha está correta
     const comparePassword = await bcrypt.compare(password, card.password);
@@ -125,4 +129,23 @@ export async function blockCard(cardId: number, password: string) {
     }
     // bloquear cartão
     await cardRepository.update(cardId, { isBlocked: true });
+}
+
+export async function unblockCard(cardId: number, password: string) {
+    // validar se o cartão existe
+    const card = await cardRepository.findById(cardId);
+    if (!card) {
+        throw new Error("Card not found");
+    }
+    // validar se o cartão não está bloqueado
+    if (!card.isBlocked) {
+        throw new Error("Card already unblocked");
+    }
+    // validar se a senha está correta
+    const comparePassword = await bcrypt.compare(password, card.password);
+    if (!comparePassword) {
+        throw new Error("Wrong password");
+    }
+    // desbloquear cartão
+    await cardRepository.update(cardId, { isBlocked: false });
 }
