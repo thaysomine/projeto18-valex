@@ -6,6 +6,8 @@ import bcrypt from "bcrypt";
 
 import * as cardRepository from "../repositories/cardRepository.js";
 import * as employeeRepository from "../repositories/employeeRepository.js";
+import * as rechargeRepository from "../repositories/rechargeRepository.js";
+import * as paymentRepository from "../repositories/paymentRepository.js";
 
 export async function createCard(employeeId: number, type: cardRepository.TransactionTypes) {
     // validar se o funcionário existe
@@ -91,19 +93,19 @@ export async function getCardInfos(cardId: number) {
     if (!card) {
         throw new Error("Card not found");
     }
-    // TODO: get card infos
-    // retornar as informações do cartão no formato {
-    //   "balance": 35000,
-    //   "transactions": [
-    // 		{ "id": 1, "cardId": 1, "businessId": 1, "businessName": "DrivenEats", "timestamp": "22/01/2022", "amount": 5000 }
-    // 	]
-    //   "recharges": [
-    // 		{ "id": 1, "cardId": 1, "timestamp": "21/01/2022", "amount": 40000 }
-    // 	]
-    // }
+    // procurar nos repo recharge, payments
+    const recharges = await rechargeRepository.findByCardId(cardId);
+    const transactions = await paymentRepository.findByCardId(cardId);
+    // saldo
+    let balance = 0;
+    recharges.forEach(recharge => {
+        balance += recharge.amount;
+    });
+    transactions.forEach(transaction => {
+        balance -= transaction.amount;
+    });
 
-    //O saldo de um cartão equivale a soma de suas recargas menos a soma de suas compras
-    return card;
+    return { balance, transactions, recharges };
 }
 
 export async function blockCard(cardId: number, password: string) {

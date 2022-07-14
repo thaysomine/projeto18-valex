@@ -1,12 +1,13 @@
 import {Router} from 'express';
 
-import { createCard, activateCard, blockCard, unblockCard } from '../controllers/cardController.js';
+import { createCard, activateCard, blockCard, unblockCard, getCardInfos } from '../controllers/cardController.js';
+import { validateKey } from '../middlewares/validateKey.js';
 
 const cardRouter = Router();
 
-cardRouter.post('/card/create', createCard);
+cardRouter.post('/card/create', validateKey, createCard);
 cardRouter.post('/card/activate/:id', activateCard);
-// TODO: rota para pegar os dados do cartão
+cardRouter.get('/card/:id', getCardInfos);
 cardRouter.post('/card/block/:id', blockCard);
 cardRouter.post('/card/unblock/:id', unblockCard);
 
