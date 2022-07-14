@@ -4,7 +4,6 @@ import * as companyRepository from "../repositories/companyRepository.js";
 
 export async function validateKey(req: Request, res: Response, next: NextFunction) {
     const apiKey = req.headers["x-api-key"] as string;
-    //const apiKey = "zadKLNx.DzvOVjQH01TumGl2urPjPQSxUbf67vs0"; 
     if (!apiKey) throw new Error("API key is required");
 
     const companyInfo = await companyRepository.findByApiKey(apiKey)
