@@ -8,19 +8,16 @@ import * as cardRepository from "../repositories/cardRepository.js";
 import * as employeeRepository from "../repositories/employeeRepository.js";
 import * as rechargeRepository from "../repositories/rechargeRepository.js";
 import * as paymentRepository from "../repositories/paymentRepository.js";
+import * as cardUtils from "../utils/cardUtils.js";
 
 export async function createCard(employeeId: number, type: cardRepository.TransactionTypes) {
     // validar se o funcionário existe
     const employee = await employeeRepository.findById(employeeId);
-    if (!employee) {
-        throw new Error("Employee not found");
-    }
-    console.log(employee);
-    // verificar se o empregado não tem cartão do mesmo tipo
+    if (!employee) throw new Error("Employee not found");
+
     const checkCard = await cardRepository.findByTypeAndEmployeeId(type, employeeId);
-    if (checkCard) {
-        throw new Error("Card already exists for this employee");
-    }
+    if (checkCard) throw new Error("Card already exists for this employee");
+    
     // criar cartão
     const number = faker.finance.creditCardNumber();
     const name = employee.fullName.split(" ");
@@ -52,51 +49,31 @@ export async function createCard(employeeId: number, type: cardRepository.Transa
         isBlocked: false,
         type,
     };
-    console.log(`dados do cartao ${card}`);
     await cardRepository.insert(card);
 }
 
 export async function activateCard(cardId: number, securityCode: string, password: string) {
-    // validar se o cartão existe
-    const card = await cardRepository.findById(cardId);
+    const card = await cardUtils.checkCard(cardId);
     console.log(card);
     console.log(`cartao ${securityCode}`);
-    if (!card) {
-        throw new Error("Card not found");
-    }
-    // validar se ja foi ativado
     if (card.password) {
         throw new Error("Card already activated");
     }
-    // validar se o cvv está correto
     const cryptr = new Cryptr("myTotallySecretKey");
     const decryptedCode = cryptr.decrypt(card.securityCode);
     console.log(`cvv ${decryptedCode}`);
     if (decryptedCode !== securityCode) {
         throw new Error("Wrong security code");
     }
-
-    //Somente cartões não expirados devem ser ativados
-    const expirationDate = card.expirationDate;
-    console.log(`data de expiracao ${expirationDate}`);
-    if (expirationDate < dayjs().format("MM/YY")) {
-        throw new Error("Card expired");
-    } 
-    // atribui a senha ao cartão
+    await cardUtils.checkCardExpiration(cardId);
     const hash = await bcrypt.hash(password, 10);
     await cardRepository.update(cardId, { password: hash });
 }
 
 export async function getCardInfos(cardId: number) {
-    // validar se o cartão existe
-    const card = await cardRepository.findById(cardId);
-    if (!card) {
-        throw new Error("Card not found");
-    }
-    // procurar nos repo recharge, payments
+    const card = await cardUtils.checkCard(cardId);
     const recharges = await rechargeRepository.findByCardId(cardId);
     const transactions = await paymentRepository.findByCardId(cardId);
-    // saldo
     let balance = 0;
     recharges.forEach(recharge => {
         balance += recharge.amount;
@@ -109,45 +86,19 @@ export async function getCardInfos(cardId: number) {
 }
 
 export async function blockCard(cardId: number, password: string) {
-    // validar se o cartão existe
-    const card = await cardRepository.findById(cardId);
-    if (!card) {
-        throw new Error("Card not found");
-    }
-    // validar se o cartão já está bloqueado
-    if (card.isBlocked) {
-        throw new Error("Card already blocked");
-    }
-    // validar se cartão esta expirado
-    const expirationDate = card.expirationDate;
-    if (expirationDate < dayjs().format("MM/YY")) {
-        throw new Error("Card expired");
-    }
-    // validar se a senha está correta
-    const comparePassword = await bcrypt.compare(password, card.password);
-    console.log(comparePassword);
-    if (!comparePassword) {
-    throw new Error("Wrong password"); 
-    }
+    await cardUtils.checkCard(cardId);
+    await cardUtils.checkCardBlocked(cardId);
+    await cardUtils.checkCardExpiration(cardId);
+    await cardUtils.checkCardPassword(cardId, password);
     // bloquear cartão
     await cardRepository.update(cardId, { isBlocked: true });
 }
 
 export async function unblockCard(cardId: number, password: string) {
-    // validar se o cartão existe
-    const card = await cardRepository.findById(cardId);
-    if (!card) {
-        throw new Error("Card not found");
-    }
-    // validar se o cartão não está bloqueado
-    if (!card.isBlocked) {
-        throw new Error("Card already unblocked");
-    }
-    // validar se a senha está correta
-    const comparePassword = await bcrypt.compare(password, card.password);
-    if (!comparePassword) {
-        throw new Error("Wrong password");
-    }
+    const card = await cardUtils.checkCard(cardId);
+    if (!card.isBlocked) throw new Error("Card already unblocked");
+    await cardUtils.checkCardExpiration(cardId);
+    await cardUtils.checkCardPassword(cardId, password);
     // desbloquear cartão
     await cardRepository.update(cardId, { isBlocked: false });
 }
