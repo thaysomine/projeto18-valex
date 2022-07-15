@@ -5,9 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.ts"
-  },
+		"build": "tsc",
+		"start": "node dist/src/index.js",
+		"dev": "nodemon src/index.ts"
+	},
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
   },
@@ -22,7 +23,7 @@
   },
   "homepage": "https://github.com/thaysomine/projeto18-valex#readme",
   "dependencies": {
-    "axios": "^0.27.2",
+		"@faker-js/faker": "^7.3.0",
     "bcrypt": "^5.0.1",
     "cors": "^2.8.5",
     "cryptr": "^6.0.3",
